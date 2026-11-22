@@ -136,7 +136,7 @@ export const MunicipalityDashboard: React.FC<MunicipalityDashboardProps> = ({
 
       {/* Critical Violation Alert Banner */}
       {flaggedRoute && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-red-950/80 via-red-900/40 to-gray-900 border border-red-700/60 shadow-2xl shadow-red-950/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="p-4 sm:p-5 rounded-2xl bg-red-50 border border-red-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start space-x-3.5">
             <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center shrink-0 mt-0.5">
               <ShieldAlert className="w-6 h-6 text-red-400 animate-pulse" />
@@ -242,8 +242,8 @@ export const MunicipalityDashboard: React.FC<MunicipalityDashboardProps> = ({
                 <XAxis dataKey="stage" stroke="#6b7280" fontSize={11} />
                 <YAxis domain={[0, 100]} stroke="#6b7280" fontSize={11} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', borderRadius: '0.75rem' }}
-                  itemStyle={{ color: '#10b981' }}
+                  contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e1e8e3', borderRadius: '0.75rem' }}
+                  itemStyle={{ color: '#176b45' }}
                 />
                 <Bar dataKey="score" fill="#10b981" radius={[6, 6, 0, 0]} barSize={45} />
               </BarChart>
@@ -288,7 +288,7 @@ export const MunicipalityDashboard: React.FC<MunicipalityDashboardProps> = ({
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', borderRadius: '0.75rem' }}
+                  contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e1e8e3', borderRadius: '0.75rem' }}
                 />
               </PieChart>
             </ResponsiveContainer>

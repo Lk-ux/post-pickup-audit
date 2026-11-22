@@ -160,7 +160,7 @@ export const CitizenPortal: React.FC<CitizenPortalProps> = ({ routes, onInspectR
             <span>
               {isRouteFlagged
                 ? 'The municipality is reviewing vehicle ' + activeRoute.vehicle + ' rather than placing responsibility on residents.'
-                : 'Pristine chain of custody confirmed from collection to bio-methanation.'}
+                : 'Waste remained separated through delivery to the processing facility.'}
             </span>
           </div>
         </div>

@@ -469,7 +469,7 @@ export const HandoffAuditForm: React.FC<HandoffAuditFormProps> = ({
                         analysisResult.foreign_material_detected ? 'text-red-400' : 'text-emerald-400'
                       }`}
                     >
-                      {analysisResult.foreign_material_detected ? 'Found' : 'NONE'}
+                      {analysisResult.foreign_material_detected ? 'Found' : 'Clear'}
                     </div>
                   </div>
                 </div>
