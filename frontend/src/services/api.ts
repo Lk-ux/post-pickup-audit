@@ -1,6 +1,7 @@
 import { WasteRoute, AnalyticsData, AiAuditAnalysis, SampleImage } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\\/+$/, '');
+const PHOTO_ANALYSIS_TIMEOUT_MS = 60_000;
 
 export const FALLBACK_SAMPLE_IMAGES: SampleImage[] = [
   {
@@ -375,6 +376,41 @@ export async function fetchSampleImages(): Promise<SampleImage[]> {
   }
 }
 
+async function postPhotoAnalysis(init: RequestInit): Promise<AiAuditAnalysis> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}/audit/analyze`, {
+      ...init,
+      signal: AbortSignal.timeout(PHOTO_ANALYSIS_TIMEOUT_MS),
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'TimeoutError') {
+      throw new Error('Photo analysis timed out after 60 seconds. Try a smaller photo or check whether the AI service is awake.');
+    }
+    throw new Error(`Could not reach the AI service at ${API_BASE}. Check that the backend is running and VITE_API_BASE_URL points to its /api endpoint.`);
+  }
+
+  const contentType = (response.headers.get('content-type') || '').toLowerCase();
+  if (!contentType.includes('application/json')) {
+    throw new Error(
+      `The AI endpoint returned ${response.status} ${response.statusText} instead of JSON. For a Vercel deployment, set VITE_API_BASE_URL to the deployed Flask service URL ending in /api.`
+    );
+  }
+
+  const data = await response.json().catch(() => null) as
+    | (Partial<AiAuditAnalysis> & { error?: string; message?: string })
+    | null;
+
+  if (!response.ok) {
+    throw new Error(data?.error || data?.message || `AI photo analysis failed (HTTP ${response.status}).`);
+  }
+  if (!data || typeof data.audit_score !== 'number' || !Array.isArray(data.foreign_materials)) {
+    throw new Error('The AI service returned an incomplete photo-analysis result. Check the backend logs.');
+  }
+
+  return data as AiAuditAnalysis;
+}
+
 export async function analyzeAuditImage(payload: {
   sample_filename?: string;
   image_base64?: string;
@@ -389,16 +425,10 @@ export async function analyzeAuditImage(payload: {
     formData.append('expected_stream', payload.expected_stream);
     if (payload.route_id) formData.append('route_id', payload.route_id);
     if (payload.stage) formData.append('stage', payload.stage);
-
-    const res = await fetch(`${API_BASE}/audit/analyze`, {
-      method: 'POST',
-      body: formData,
-    });
-    if (!res.ok) throw new Error('Image analysis failed');
-    return res.json();
+    return postPhotoAnalysis({ method: 'POST', body: formData });
   }
 
-  const res = await fetch(`${API_BASE}/audit/analyze`, {
+  return postPhotoAnalysis({
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -409,10 +439,7 @@ export async function analyzeAuditImage(payload: {
       stage: payload.stage,
     }),
   });
-  if (!res.ok) throw new Error('Image analysis failed');
-  return res.json();
 }
-
 export async function recordHandoffAudit(
   routeId: string,
   auditData: {
