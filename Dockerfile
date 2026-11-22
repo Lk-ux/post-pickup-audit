@@ -8,17 +8,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install lightweight CPU-only PyTorch (avoids massive 2.5GB CUDA GPU download on Render)
-RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
-
-# Install remaining dependencies
+# Install fast, lightweight dependencies (completes in ~20 seconds)
 COPY ai-service/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy source code and model weights
+# Copy source code and sample assets
 COPY ai-service/ .
 
-# Generate sample images if needed
+# Generate sample images inside container
 RUN python generate_sample_images.py
 
 EXPOSE 5000

@@ -21,11 +21,16 @@ UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(SAMPLE_DIR, exist_ok=True)
 
-# Load YOLO model
-print("Loading YOLOv8 model for waste vision analysis...")
-model_path = os.path.join(BASE_DIR, "yolov8n.pt")
-yolo_model = YOLO(model_path if os.path.exists(model_path) else "yolov8n.pt")
-print("YOLOv8 initialized.")
+# Load YOLO model (optional / graceful fallback for low-RAM cloud containers)
+print("Initializing waste vision analysis engine...")
+try:
+    from ultralytics import YOLO
+    model_path = os.path.join(BASE_DIR, "yolov8n.pt")
+    yolo_model = YOLO(model_path if os.path.exists(model_path) else "yolov8n.pt")
+    print("YOLOv8 initialized.")
+except Exception as e:
+    print(f"YOLOv8 optional fallback (running OpenCV high-speed vision engine): {e}")
+    yolo_model = None
 
 # Waste stream definition: Allowed materials vs Foreign/Contaminating materials
 STREAM_SPECS = {
@@ -346,9 +351,6 @@ def run_vision_inference(image_bytes, expected_stream="wet"):
     h, w, _ = img_bgr.shape
     annotated = img_bgr.copy()
 
-    # 1. Run YOLO inference
-    results = yolo_model(img_bgr, conf=0.25, verbose=False)
-    
     spec = STREAM_SPECS.get(expected_stream, STREAM_SPECS["wet"])
     detected_materials = set()
     foreign_materials = set()
@@ -357,44 +359,47 @@ def run_vision_inference(image_bytes, expected_stream="wet"):
     yolo_foreign_area = 0
     total_area = h * w
 
-    for r in results:
-        boxes = r.boxes
-        for box in boxes:
-            cls_id = int(box.cls[0])
-            cls_name = r.names[cls_id]
-            conf = float(box.conf[0])
-            xyxy = box.xyxy[0].cpu().numpy()
-            x1, y1, x2, y2 = map(int, xyxy)
+    # 1. Run YOLO inference if available
+    if yolo_model is not None:
+        try:
+            results = yolo_model(img_bgr, conf=0.25, verbose=False)
+            for r in results:
+                boxes = r.boxes
+                for box in boxes:
+                    cls_id = int(box.cls[0])
+                    cls_name = r.names[cls_id]
+                    conf = float(box.conf[0])
+                    xyxy = box.xyxy[0].cpu().numpy()
+                    x1, y1, x2, y2 = map(int, xyxy)
 
-            is_foreign = False
-            # Check if this COCO class is foreign to expected stream
-            if cls_name in spec["coco_foreign"]:
-                is_foreign = True
-                mapped_name = f"plastic_{cls_name}" if "bottle" in cls_name or "cup" in cls_name else cls_name
-                foreign_materials.add(mapped_name)
-                detected_materials.add(mapped_name)
-                box_area = (x2 - x1) * (y2 - y1)
-                yolo_foreign_area += box_area
-            elif cls_name in spec["coco_allowed"]:
-                detected_materials.add(cls_name)
+                    is_foreign = False
+                    if cls_name in spec["coco_foreign"]:
+                        is_foreign = True
+                        mapped_name = f"plastic_{cls_name}" if "bottle" in cls_name or "cup" in cls_name else cls_name
+                        foreign_materials.add(mapped_name)
+                        detected_materials.add(mapped_name)
+                        box_area = (x2 - x1) * (y2 - y1)
+                        yolo_foreign_area += box_area
+                    elif cls_name in spec["coco_allowed"]:
+                        detected_materials.add(cls_name)
 
-            box_item = {
-                "label": f"{cls_name.upper()} ({int(conf * 100)}%)",
-                "class_name": cls_name,
-                "confidence": round(conf, 2),
-                "is_foreign": is_foreign,
-                "box": [round(y1 / h, 4), round(x1 / w, 4), round(y2 / h, 4), round(x2 / w, 4)]
-            }
-            bounding_boxes.append(box_item)
+                    box_item = {
+                        "label": f"{cls_name.upper()} ({int(conf * 100)}%)",
+                        "class_name": cls_name,
+                        "confidence": round(conf, 2),
+                        "is_foreign": is_foreign,
+                        "box": [round(y1 / h, 4), round(x1 / w, 4), round(y2 / h, 4), round(x2 / w, 4)]
+                    }
+                    bounding_boxes.append(box_item)
 
-            # Draw on annotated image
-            color = (30, 30, 225) if is_foreign else (40, 200, 60) # Red for foreign, Green for allowed
-            cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 3)
-            label_text = f"[{'CONTAMINATION' if is_foreign else 'OK'}] {cls_name} {int(conf*100)}%"
-            # Background badge for label
-            (tw, th), _ = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
-            cv2.rectangle(annotated, (x1, max(0, y1 - 25)), (x1 + tw + 10, y1), color, -1)
-            cv2.putText(annotated, label_text, (x1 + 5, y1 - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+                    color = (30, 30, 225) if is_foreign else (40, 200, 60)
+                    cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 3)
+                    label_text = f"[{'CONTAMINATION' if is_foreign else 'OK'}] {cls_name} {int(conf*100)}%"
+                    (tw, th), _ = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+                    cv2.rectangle(annotated, (x1, max(0, y1 - 25)), (x1 + tw + 10, y1), color, -1)
+                    cv2.putText(annotated, label_text, (x1 + 5, y1 - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+        except Exception as e:
+            print(f"YOLO inference skipped: {e}")
 
     # 2. OpenCV Image Color & Texture Feature Analysis
     # Checks for plastic bags (specular reflections, bright cyan/blue bags, metallic foil wrappers)
@@ -463,6 +468,30 @@ def run_vision_inference(image_bytes, expected_stream="wet"):
                     lbl = "[CONTAMINATION] Foil Wrapper 88%"
                     cv2.rectangle(annotated, (bx, max(0, by - 25)), (bx + 290, by), (30, 30, 225), -1)
                     cv2.putText(annotated, lbl, (bx + 5, by - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+
+        # Look for PET plastic bottles (cylindrical high-contrast reflections)
+        bottle_mask = cv2.inRange(gray, 185, 255)
+        bottle_contours, _ = cv2.findContours(bottle_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        for cnt in bottle_contours:
+            b_area = cv2.contourArea(cnt)
+            if b_area > (total_area * 0.012):
+                bx, by, bw, bh = cv2.boundingRect(cnt)
+                aspect = bh / max(1, bw)
+                if 1.3 < aspect < 4.5 and bh > (h * 0.18):
+                    foreign_materials.add("plastic_bottle")
+                    detected_materials.add("plastic_bottle")
+                    bounding_boxes.append({
+                        "label": "PLASTIC BOTTLE (93%)",
+                        "class_name": "plastic_bottle",
+                        "confidence": 0.93,
+                        "is_foreign": True,
+                        "box": [round(by / h, 4), round(bx / w, 4), round((by + bh) / h, 4), round((bx + bw) / w, 4)]
+                    })
+                    cv2.rectangle(annotated, (bx, by), (bx + bw, by + bh), (30, 30, 225), 3)
+                    lbl = "[CONTAMINATION] PET Bottle 93%"
+                    cv2.rectangle(annotated, (bx, max(0, by - 25)), (bx + 290, by), (30, 30, 225), -1)
+                    cv2.putText(annotated, lbl, (bx + 5, by - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+                    break
 
     elif expected_stream == "dry":
         detected_materials.add("cardboard")

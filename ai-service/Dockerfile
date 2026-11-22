@@ -13,7 +13,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Generate sample images if not present
 RUN python generate_sample_images.py
 
 EXPOSE 5000
