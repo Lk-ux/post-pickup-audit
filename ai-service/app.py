@@ -14,6 +14,17 @@ from PIL import Image
 app = Flask(__name__)
 CORS(app)
 
+# Keep camera uploads and CV processing bounded on small cloud instances.
+MAX_UPLOAD_BYTES = 15 * 1024 * 1024
+MAX_IMAGE_DIMENSION = 1280
+app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_BYTES
+
+
+@app.errorhandler(413)
+def photo_too_large(_error):
+    max_mb = MAX_UPLOAD_BYTES // (1024 * 1024)
+    return jsonify({"error": f"Photo is too large. The maximum upload size is {max_mb} MB."}), 413
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SAMPLE_DIR = os.path.join(BASE_DIR, "sample_images")
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
@@ -347,7 +358,20 @@ def run_vision_inference(image_bytes, expected_stream="wet"):
     if img_bgr is None:
         raise ValueError("Invalid image file format")
 
-    h, w, _ = img_bgr.shape
+    # Normalize large phone-camera images before running color masks and contours.
+    h, w = img_bgr.shape[:2]
+    longest_edge = max(h, w)
+    if longest_edge > MAX_IMAGE_DIMENSION:
+        scale = MAX_IMAGE_DIMENSION / float(longest_edge)
+        resized_width = max(1, int(round(w * scale)))
+        resized_height = max(1, int(round(h * scale)))
+        img_bgr = cv2.resize(
+            img_bgr,
+            (resized_width, resized_height),
+            interpolation=cv2.INTER_AREA,
+        )
+
+    h, w = img_bgr.shape[:2]
     annotated = img_bgr.copy()
 
     spec = STREAM_SPECS.get(expected_stream, STREAM_SPECS["wet"])
@@ -544,8 +568,10 @@ def run_vision_inference(image_bytes, expected_stream="wet"):
     status_text = f"AUDIT RESULT: {status} | STREAM: {expected_stream.upper()} | SCORE: {audit_score}/100 | CONTAM: {estimated_contamination}%"
     cv2.putText(annotated, status_text, (15, 27), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 255, 255), 2)
 
-    # Encode annotated image to Base64
-    _, buf = cv2.imencode(".jpg", annotated)
+    # Encode a compact annotated image to keep the JSON response small.
+    encoded, buf = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, 88])
+    if not encoded:
+        raise ValueError("Could not encode the annotated photo")
     annotated_b64 = "data:image/jpeg;base64," + base64.b64encode(buf).decode("utf-8")
 
     return {
@@ -625,45 +651,62 @@ def get_sample_image(filename):
 @app.route("/api/audit/analyze", methods=["POST"])
 def analyze_audit_image():
     """
-    Accepts:
-    - 'image' file upload OR 'sample_filename' OR 'image_base64'
-    - 'expected_stream': 'wet' | 'dry' | 'hazardous'
-    - 'route_id'
-    - 'stage': 'Collection Vehicle' | 'Transfer Station' | 'Processing Plant Gate'
+    Accepts an uploaded image, a sample filename, or a base64-encoded image.
+    Resizes decoded images before inference to keep processing predictable.
     """
-    expected_stream = request.form.get("expected_stream", "wet").lower()
-    
+    data = request.get_json(silent=True) or {}
+    expected_stream = str(
+        request.form.get("expected_stream")
+        or data.get("expected_stream")
+        or "wet"
+    ).strip().lower()
+
+    if expected_stream not in STREAM_SPECS:
+        return jsonify({"error": "expected_stream must be wet, dry, or hazardous."}), 400
+
     image_bytes = None
-    if "image" in request.files:
-        file = request.files["image"]
-        image_bytes = file.read()
-    elif request.form.get("sample_filename"):
-        sample_path = os.path.join(SAMPLE_DIR, request.form.get("sample_filename"))
-        if os.path.exists(sample_path):
-            with open(sample_path, "rb") as f:
-                image_bytes = f.read()
-    elif request.json and "image_base64" in request.json:
-        b64_str = request.json["image_base64"]
-        if "," in b64_str:
-            b64_str = b64_str.split(",")[1]
-        image_bytes = base64.b64decode(b64_str)
-        expected_stream = request.json.get("expected_stream", "wet").lower()
-    elif request.json and "sample_filename" in request.json:
-        sample_path = os.path.join(SAMPLE_DIR, request.json["sample_filename"])
-        if os.path.exists(sample_path):
-            with open(sample_path, "rb") as f:
-                image_bytes = f.read()
-        expected_stream = request.json.get("expected_stream", "wet").lower()
+    uploaded_file = request.files.get("image")
+    if uploaded_file is not None:
+        image_bytes = uploaded_file.read()
+        if not image_bytes:
+            return jsonify({"error": "The uploaded photo is empty."}), 400
+    else:
+        sample_filename = request.form.get("sample_filename") or data.get("sample_filename")
+        if sample_filename:
+            safe_filename = os.path.basename(str(sample_filename))
+            if safe_filename != str(sample_filename):
+                return jsonify({"error": "Invalid sample photo filename."}), 400
+            sample_path = os.path.join(SAMPLE_DIR, safe_filename)
+            if not os.path.isfile(sample_path):
+                return jsonify({"error": "The selected sample photo was not found."}), 404
+            with open(sample_path, "rb") as sample_file:
+                image_bytes = sample_file.read()
+        elif data.get("image_base64"):
+            encoded_image = str(data["image_base64"])
+            if "," in encoded_image:
+                encoded_image = encoded_image.split(",", 1)[1]
+            try:
+                image_bytes = base64.b64decode(encoded_image, validate=True)
+            except Exception:
+                return jsonify({"error": "The supplied base64 photo is invalid."}), 400
 
     if not image_bytes:
-        # Fallback to default sample
-        default_file = "contaminated_wet_waste.jpg" if expected_stream == "wet" else "clean_dry_waste.jpg"
-        with open(os.path.join(SAMPLE_DIR, default_file), "rb") as f:
-            image_bytes = f.read()
+        return jsonify({"error": "Choose a photo or a sample image before starting the audit."}), 400
 
-    result = run_vision_inference(image_bytes, expected_stream)
-    return jsonify(result)
-
+    try:
+        started_at = time.monotonic()
+        result = run_vision_inference(image_bytes, expected_stream)
+        app.logger.info(
+            "Photo analysis completed in %.2fs (stream=%s)",
+            time.monotonic() - started_at,
+            expected_stream,
+        )
+        return jsonify(result)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception:
+        app.logger.exception("Unexpected error while analyzing an audit photo")
+        return jsonify({"error": "The AI service could not analyze this photo. Try a smaller JPG or PNG image."}), 500
 @app.route("/api/routes", methods=["GET"])
 def get_routes():
     # Recalculate dynamic scores
