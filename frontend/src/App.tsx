@@ -13,19 +13,22 @@ import {
   checkBackendHealth,
   resetDemoData,
   simulateRouteBreakdown,
+  FALLBACK_ROUTES,
+  FALLBACK_ANALYTICS,
+  FALLBACK_SAMPLE_IMAGES,
 } from './services/api';
 import { WasteRoute, AnalyticsData, SampleImage } from './types';
 import confetti from 'canvas-confetti';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'audit' | 'map' | 'citizen' | 'demo'>('dashboard');
-  const [routes, setRoutes] = useState<WasteRoute[]>([]);
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [sampleImages, setSampleImages] = useState<SampleImage[]>([]);
+  const [routes, setRoutes] = useState<WasteRoute[]>(FALLBACK_ROUTES);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(FALLBACK_ANALYTICS);
+  const [sampleImages, setSampleImages] = useState<SampleImage[]>(FALLBACK_SAMPLE_IMAGES);
   const [selectedRouteForModal, setSelectedRouteForModal] = useState<WasteRoute | null>(null);
   const [selectedRouteIdForAudit, setSelectedRouteIdForAudit] = useState<string>('ROUTE-B');
   const [isOnline, setIsOnline] = useState<boolean>(true);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [pitchStep, setPitchStep] = useState<number>(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
