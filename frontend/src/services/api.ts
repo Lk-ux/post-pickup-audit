@@ -1,6 +1,6 @@
 import { WasteRoute, AnalyticsData, AiAuditAnalysis, SampleImage } from '../types';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\\/+$/, '');
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/+$/, '');
 const PHOTO_ANALYSIS_TIMEOUT_MS = 60_000;
 
 export const FALLBACK_SAMPLE_IMAGES: SampleImage[] = [
