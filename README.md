@@ -145,6 +145,18 @@ mvn spring-boot:run
 
 ---
 
+### Cloud deployment (Vercel frontend + separate AI API)
+
+The Vite frontend and the Flask AI service are separate deployments. Vercel serves the frontend only; it does not run `ai-service/app.py`. Deploy the Flask service separately, then add this environment variable to the Vercel project:
+
+```env
+VITE_API_BASE_URL=https://YOUR-AI-SERVICE-HOST/api
+```
+
+The value must point to the Flask service and include the `/api` suffix. Redeploy the frontend after changing the variable because Vite embeds it at build time. For local development, the Vite proxy already forwards `/api` to `http://127.0.0.1:5000`, so this variable can remain unset.
+
+---
+
 ## 📡 6. REST API Reference
 
 | Method | Endpoint | Description |

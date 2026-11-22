@@ -105,7 +105,7 @@ export const HandoffAuditForm: React.FC<HandoffAuditFormProps> = ({
       }
     } catch (err) {
       console.error(err);
-      alert('Failed to analyze image with AI model');
+      alert(err instanceof Error ? err.message : 'Failed to analyze image with AI model');
     } finally {
       setIsAnalyzing(false);
     }
