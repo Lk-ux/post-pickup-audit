@@ -37,8 +37,8 @@ button{-webkit-tap-highlight-color:transparent}
 #root .text-red-200,#root .text-red-300,#root .text-red-400{color:#8f3028!important}
 #root .text-purple-300,#root .text-purple-400{color:#70489b!important}
 #root .border-gray-900,#root .border-gray-800,#root .border-gray-700,#root .border-gray-850{border-color:var(--line)!important}
-#root .divide-gray-800\\/60 > :not([hidden]) ~ :not([hidden]){border-color:var(--line)!important}
-#root .hover\\:bg-gray-800:hover,#root .hover\\:bg-gray-700:hover{background-color:#e8efea!important}
+#root [class~="divide-gray-800/60"] > :not([hidden]) ~ :not([hidden]){border-color:var(--line)!important}
+#root [class~="hover:bg-gray-800"]:hover,#root [class~="hover:bg-gray-700"]:hover{background-color:#e8efea!important}
 #root .bg-red-600.text-white,#root .bg-red-500.text-white,#root .bg-emerald-600.text-white,#root .bg-emerald-500.text-white,#root .bg-blue-600.text-white,#root .bg-amber-600.text-white{color:#fff!important}
 #root .bg-gray-900.border,#root .bg-gray-950.border{border-color:var(--line)!important}
 #root .bg-gray-900.shadow-xl,#root .bg-gray-900.shadow-2xl,#root .bg-gray-900.shadow-lg{box-shadow:0 8px 24px rgba(27,50,36,.045)!important}
