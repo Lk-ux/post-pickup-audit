@@ -809,5 +809,6 @@ def simulate_breakdown():
     })
 
 if __name__ == "__main__":
-    print("Starting Post-Pickup Waste Integrity AI & REST backend on port 5000...")
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    port = int(os.environ.get("PORT", 5000))
+    print(f"Starting Post-Pickup Waste Integrity AI & REST backend on port {port}...")
+    app.run(host="0.0.0.0", port=port, debug=False)
