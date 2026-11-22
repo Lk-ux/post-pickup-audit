@@ -20,6 +20,8 @@ button{-webkit-tap-highlight-color:transparent}
 #root .bg-gray-950,#root [class~="bg-gray-950/40"],#root [class~="bg-gray-950/60"],#root [class~="bg-gray-950/80"]{background-color:var(--surface-muted)!important}
 #root .bg-gray-900,#root [class~="bg-gray-900/60"],#root [class~="bg-gray-900/90"]{background-color:var(--surface)!important}
 #root .bg-gray-800,#root [class~="bg-gray-800/40"]{background-color:var(--surface-soft)!important}
+/* These legacy dark utility surfaces contain readable content, so remap them too. */
+#root [class~="bg-gray-950/90"],#root [class~="bg-black/70"],#root [class~="bg-black/40"]{background-color:var(--surface-soft)!important}
 #root .bg-red-950,#root [class~="bg-red-950/30"],#root [class~="bg-red-950/40"],#root [class~="bg-red-950/60"]{background-color:#fff4f2!important}
 #root .bg-emerald-950,#root [class~="bg-emerald-950/40"],#root [class~="bg-emerald-950/70"]{background-color:#edf7f0!important}
 #root .bg-amber-950,#root [class~="bg-amber-950/80"]{background-color:#fff8eb!important}
@@ -35,8 +37,8 @@ button{-webkit-tap-highlight-color:transparent}
 #root .text-red-200,#root .text-red-300,#root .text-red-400{color:#8f3028!important}
 #root .text-purple-300,#root .text-purple-400{color:#70489b!important}
 #root .border-gray-900,#root .border-gray-800,#root .border-gray-700,#root .border-gray-850{border-color:var(--line)!important}
-#root .divide-gray-800\/60 > :not([hidden]) ~ :not([hidden]){border-color:var(--line)!important}
-#root .hover\:bg-gray-800:hover,#root .hover\:bg-gray-700:hover{background-color:#e8efea!important}
+#root .divide-gray-800\\/60 > :not([hidden]) ~ :not([hidden]){border-color:var(--line)!important}
+#root .hover\\:bg-gray-800:hover,#root .hover\\:bg-gray-700:hover{background-color:#e8efea!important}
 #root .bg-red-600.text-white,#root .bg-red-500.text-white,#root .bg-emerald-600.text-white,#root .bg-emerald-500.text-white,#root .bg-blue-600.text-white,#root .bg-amber-600.text-white{color:#fff!important}
 #root .bg-gray-900.border,#root .bg-gray-950.border{border-color:var(--line)!important}
 #root .bg-gray-900.shadow-xl,#root .bg-gray-900.shadow-2xl,#root .bg-gray-900.shadow-lg{box-shadow:0 8px 24px rgba(27,50,36,.045)!important}
