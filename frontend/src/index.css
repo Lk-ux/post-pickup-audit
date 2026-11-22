@@ -28,11 +28,11 @@ button{-webkit-tap-highlight-color:transparent}
 #root .text-gray-300{color:#4b5b51!important}
 #root .text-gray-400{color:#637168!important}
 #root .text-gray-500{color:#718078!important}
-#root .text-emerald-300,#root .text-emerald-400{color:#176b45!important}
+#root .text-emerald-200,#root .text-emerald-300,#root .text-emerald-400{color:#145c36!important}
 #root .text-green-300,#root .text-green-400{color:#256a40!important}
 #root .text-blue-300,#root .text-blue-400{color:#285d91!important}
 #root .text-amber-300,#root .text-amber-400{color:#91600c!important}
-#root .text-red-300,#root .text-red-400{color:#b13f35!important}
+#root .text-red-200,#root .text-red-300,#root .text-red-400{color:#8f3028!important}
 #root .text-purple-300,#root .text-purple-400{color:#70489b!important}
 #root .border-gray-900,#root .border-gray-800,#root .border-gray-700,#root .border-gray-850{border-color:var(--line)!important}
 #root .divide-gray-800\/60 > :not([hidden]) ~ :not([hidden]){border-color:var(--line)!important}
