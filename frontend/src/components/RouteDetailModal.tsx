@@ -37,7 +37,7 @@ export const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-sm overflow-y-auto">
       <div className="relative w-full max-w-5xl bg-gray-900 border border-gray-800 rounded-3xl shadow-2xl overflow-hidden my-8">
         {/* Modal Header */}
-        <div className="p-6 border-b border-gray-800 flex items-start justify-between bg-gradient-to-r from-gray-900 via-gray-900 to-gray-850">
+        <div className="p-6 border-b border-gray-800 flex items-start justify-between bg-gray-50">
           <div className="space-y-1">
             <div className="flex items-center space-x-2">
               <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase">
