@@ -1,0 +1,45 @@
+# Node
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+.npm
+.vite/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+parts/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Java / Maven
+backend-springboot/target/
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# IDE & OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+*.log
