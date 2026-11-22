@@ -469,6 +469,30 @@ def run_vision_inference(image_bytes, expected_stream="wet"):
                     cv2.rectangle(annotated, (bx, max(0, by - 25)), (bx + 290, by), (30, 30, 225), -1)
                     cv2.putText(annotated, lbl, (bx + 5, by - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
+        # Look for PET plastic bottles (cylindrical high-contrast reflections)
+        bottle_mask = cv2.inRange(gray, 185, 255)
+        bottle_contours, _ = cv2.findContours(bottle_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        for cnt in bottle_contours:
+            b_area = cv2.contourArea(cnt)
+            if b_area > (total_area * 0.012):
+                bx, by, bw, bh = cv2.boundingRect(cnt)
+                aspect = bh / max(1, bw)
+                if 1.3 < aspect < 4.5 and bh > (h * 0.18):
+                    foreign_materials.add("plastic_bottle")
+                    detected_materials.add("plastic_bottle")
+                    bounding_boxes.append({
+                        "label": "PLASTIC BOTTLE (93%)",
+                        "class_name": "plastic_bottle",
+                        "confidence": 0.93,
+                        "is_foreign": True,
+                        "box": [round(by / h, 4), round(bx / w, 4), round((by + bh) / h, 4), round((bx + bw) / w, 4)]
+                    })
+                    cv2.rectangle(annotated, (bx, by), (bx + bw, by + bh), (30, 30, 225), 3)
+                    lbl = "[CONTAMINATION] PET Bottle 93%"
+                    cv2.rectangle(annotated, (bx, max(0, by - 25)), (bx + 290, by), (30, 30, 225), -1)
+                    cv2.putText(annotated, lbl, (bx + 5, by - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+                    break
+
     elif expected_stream == "dry":
         detected_materials.add("cardboard")
         detected_materials.add("paper")
