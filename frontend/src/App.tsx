@@ -27,6 +27,7 @@ export function App() {
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [pitchStep, setPitchStep] = useState<number>(0);
+  const [isDemoGuideActive, setIsDemoGuideActive] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -114,17 +115,22 @@ export function App() {
     setActiveTab('audit');
   };
 
+  const handleHeaderTabChange = (tab: 'dashboard' | 'audit' | 'map' | 'citizen' | 'demo') => {
+    setActiveTab(tab);
+    setIsDemoGuideActive(tab === 'demo');
+  };
+
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-gray-950">
       {/* Header */}
       <Header
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleHeaderTabChange}
         isOnline={isOnline}
       />
 
       {/* Interactive Hackathon Pitch Banner (visible on demo tab or togglable) */}
-      {(activeTab === 'demo') && (
+      {(activeTab === 'demo' || isDemoGuideActive) && (
         <PitchDemoBanner
           currentStep={pitchStep}
           onStepChange={setPitchStep}
